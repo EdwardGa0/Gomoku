@@ -5,6 +5,7 @@ const port = 8080
 const io = require('socket.io')(http);
 
 const Game = require('./game');
+
 const game = new Game(15);
 
 app.use(express.static(__dirname));
@@ -14,22 +15,20 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 })
 
-app.get('/turnStack', (req, res) => {
-    res.json(game.turnStack);
-})
-
-app.post('/place', (req, res) => {
-    let row = req.body.row;
-    let col = req.body.col;
-    res.json({
-        "placed": game.place(row, col),
+function update(pos) {
+    io.emit('update', {
+        "placed": (pos ? game.place(pos.row, pos.col) : false),
+        "turnStack": game.turnStack,
+        "turn": game.getTurn(),
         "victory": game.checkWin(),
-        "turn": game.turn
-    });
-})
+    })
+}
 
 io.on('connection', (socket) => {
-    console.log('a user connected');
+    update(null);
+    socket.on('place', (pos) => {
+        update(pos);
+    })
 });
 
 http.listen(port, () => {

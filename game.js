@@ -1,7 +1,6 @@
 class Game {
     constructor(size) {
         this.size = size;
-        this.turn = 0;
         this.turnStack = [];
         this.board = new Array(size);
         for (let i = 0; i < size; i++) {
@@ -13,14 +12,13 @@ class Game {
         if (this.board[row][col]) {
             return false;
         }
-        this.turn++;
         this.turnStack.push([row, col]);
-        this.board[row][col] = this.turn;
+        this.board[row][col] = this.getTurn();
         return true;
     }
 
     checkWin() {
-        for (let t = 0; t < this.turnStack.length; t++) {
+        for (let t = 0; t < this.getTurn(); t++) {
             let [row, col] = this.turnStack[t];
             let cont = [0, 0, 0, 0];
             for (let i = -2; i <= 2; i++) {
@@ -34,7 +32,7 @@ class Game {
                 }
             }
             if (cont.includes(5)) {
-                return true;
+                return (this.getTurn() % 2 == 1 ? 'black' : 'white');
             }
         }
         return false;
@@ -51,6 +49,10 @@ class Game {
             return false;
         }
         return (this.board[row1][col1] % 2) == (this.board[row2][col2] % 2);
+    }
+
+    getTurn() {
+        return this.turnStack.length;
     }
 
 }
