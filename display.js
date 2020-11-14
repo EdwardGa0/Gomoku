@@ -30,6 +30,10 @@ function addToGrid(row, col) {
 }
 
 var socket = io();
+const urlParams = new URLSearchParams(window.location.search);
+const id = urlParams.get('id');
+socket.emit('id', id);
+
 socket.on('update', function(data) {
     console.log(data);
     while (turn < data.turn) {
