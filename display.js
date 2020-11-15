@@ -50,7 +50,7 @@ socket.on('update', function(data) {
         playAgain.innerHTML = "New Game";
         playAgain.style.float = "right";
         playAgain.onclick = function(e) {
-            location.replace("http://localhost:8080/new");
+            location.replace("https://gomokuonline.herokuapp.com/new");
         }
         menu.appendChild(playAgain);
     }
