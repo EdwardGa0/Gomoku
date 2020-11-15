@@ -1,8 +1,6 @@
 var size = 15;
-var board = document.getElementById("board");
-var boardGrid = document.getElementById("boardGrid");
-var stoneGrid = document.getElementById("stoneGrid");
 
+var boardGrid = document.getElementById("boardGrid");
 for (let i = 0; i < (size-1)*(size-1); i++) {
     let cell = document.createElement("div");
     boardGrid.appendChild(cell).className = "cell";
@@ -17,6 +15,7 @@ for (let i = 0; i < size; i++) {
 var turn = 0;
 var gameOver = false;
 
+var stoneGrid = document.getElementById("stoneGrid");
 function addToGrid(row, col) {
     stonePos[row][col] = document.createElement("img");
     if (turn % 2 == 0) {
@@ -31,23 +30,33 @@ function addToGrid(row, col) {
 
 var socket = io();
 const urlParams = new URLSearchParams(window.location.search);
-const id = urlParams.get('id');
-socket.emit('id', id);
+const gameId = urlParams.get('gameId');
+socket.emit('gameId', gameId);
 
+var menu = document.getElementById("menu");
 socket.on('update', function(data) {
     console.log(data);
     while (turn < data.turn) {
         let [row, col] = data.turnStack[turn];
         addToGrid(row, col);
     }
-    if (data.victory) {
+    if (data.winner && !gameOver) {
         gameOver = true;
-        var victoryStr = document.createElement("h1");
-        victoryStr.innerHTML = data.victory + " Wins";
+        let victoryStr = document.createElement("h1");
+        victoryStr.innerHTML = data.winner + ' wins';
         document.body.appendChild(victoryStr);
+        let playAgain = document.createElement("button");
+        playAgain.id = "again";
+        playAgain.innerHTML = "New Game";
+        playAgain.style.float = "right";
+        playAgain.onclick = function(e) {
+            location.replace("http://localhost:8080/new");
+        }
+        menu.appendChild(playAgain);
     }
 });
 
+var board = document.getElementById("board");
 board.onclick = function(e) {
     if (gameOver) {
         return;
@@ -59,4 +68,11 @@ board.onclick = function(e) {
     let col = Math.floor(x / rect.width * size);
 
     socket.emit('place', {'row': row, 'col': col});
+}
+
+var resign = document.getElementById("resign");
+resign.onclick = function(e) {
+    if (!gameOver) {
+        socket.emit('resign');
+    }
 }

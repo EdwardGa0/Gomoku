@@ -10,49 +10,88 @@ const activeGames = {};
 app.use(express.static(__dirname));
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    let id = Math.random().toString(36).substring(7);
-    activeGames[id] = new Game(15);
-    res.redirect('/game?id=' + id);
+app.get('/new', (req, res) => {
+    let gameId = Math.random().toString(36).substring(7);
+    activeGames[gameId] = new Game(15);
+    res.redirect('/?gameId=' + gameId);
 })
 
-app.get('/game', (req, res) => {
-    let id = req.query.id;
-    if (id in activeGames) {
+app.get('/', (req, res) => {
+    let gameId = req.query.gameId;
+    if (gameId in activeGames) {
         res.sendFile(__dirname + '/front.html');
     } else {
-        res.send('id not found');
+        res.send('gameId not found');
     }
 })
 
-function update(id, pos) {
-    if (!(id in activeGames)) {
-        console.log("id:", id, "does not exist");
-        return false;
+function update(game, pos) {
+    let placed;
+    if (pos) {
+        placed = game.place(pos.row, pos.col);
+    } else {
+        placed = null;
+    }
+    game.checkWin();
+    let winner = false;
+    if (game.over) {
+        if (game.winner) {
+            winner = "white";
+        } else {
+            winner = "black";
+        }
     }
     io.emit('update', {
-        "placed": (pos ? activeGames[id].place(pos.row, pos.col) : false),
-        "turnStack": activeGames[id].turnStack,
-        "turn": activeGames[id].getTurn(),
-        "victory": gameOver = activeGames[id].checkWin()
+        "placed": placed,
+        "turnStack": game.turnStack,
+        "turn": game.turn(),
+        "winner": winner
     })
-    return !gameOver;
+}
+
+function validGame(gameId) {
+    if (!(gameId in activeGames)) {
+        return false;
+    }
+    if (activeGames[gameId].players.length >= 2) {
+        return false;
+    }
+    return true;
 }
 
 io.on('connection', (socket) => {
-    let id;
-    socket.on('id', (tempid) => {
-        id = tempid;
-        if (!update(id, null)) {
+    let gameId;
+    let game;
+    socket.on('gameId', (tempgameId) => {
+        gameId = tempgameId;
+        if (!validGame(gameId)) {
             socket.disconnect();
+            return;
         }
+        game = activeGames[gameId];
+        if (!game.players.includes(socket.id)) {
+            game.addPlayer(socket.id);
+        }
+        update(game, null);
     });
     socket.on('place', (pos) => {
         console.log('place received');
-        if (!update(id, pos)) {
-            socket.disconnect();
-            delete activeGames[id];
+        if (game.players.indexOf(socket.id) == game.turn() % 2) {
+            update(game, pos);
         }
+        if (game.over) {
+            socket.disconnect();
+            delete game;
+            return;
+        }
+    });
+    socket.on('resign', () => {
+        game.over = true;
+        game.winner = 1 - game.players.indexOf(socket.id);
+        update(game, null);
+    })
+    socket.on('again', () => {
+
     });
 });
 

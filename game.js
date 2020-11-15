@@ -6,6 +6,8 @@ class Game {
         for (let i = 0; i < size; i++) {
             this.board[i] = new Array(size);
         }
+        this.players = [];
+        this.over = false;
     }
 
     place(row, col) {
@@ -13,12 +15,12 @@ class Game {
             return false;
         }
         this.turnStack.push([row, col]);
-        this.board[row][col] = this.getTurn();
+        this.board[row][col] = this.turn();
         return true;
     }
 
     checkWin() {
-        for (let t = 0; t < this.getTurn(); t++) {
+        for (let t = 0; t < this.turn(); t++) {
             let [row, col] = this.turnStack[t];
             let cont = [0, 0, 0, 0];
             for (let i = -2; i <= 2; i++) {
@@ -32,12 +34,13 @@ class Game {
                 }
             }
             if (cont.includes(5)) {
-                return (this.getTurn() % 2 == 1 ? 'black' : 'white');
+                this.over = true;
+                this.winner = 1 - this.turn() % 2;
+                return;
             }
         }
-        return false;
     }
-
+    
     sameColor(row1, col1, row2, col2) {
         let temp = [row1, col1, row2, col2];
         temp.forEach(element => {
@@ -51,7 +54,11 @@ class Game {
         return (this.board[row1][col1] % 2) == (this.board[row2][col2] % 2);
     }
 
-    getTurn() {
+    addPlayer(id) {
+        this.players.push(id);
+    }
+
+    turn() {
         return this.turnStack.length;
     }
 
