@@ -8,6 +8,7 @@ class Game {
         }
         this.players = [];
         this.over = false;
+        this.date = new Date();
     }
 
     place(row, col) {
