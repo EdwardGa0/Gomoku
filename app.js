@@ -18,15 +18,15 @@ app.use(sessionMiddleware);
 
 io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
-app.get('/new', (req, res) => {
+app.get('/', (req, res) => {
     let gameId = Math.random().toString(36).substring(7);
     activeGames[gameId] = new Game(15);
     idQueue.push(gameId);
     req.session.destroy();
-    res.redirect('/?gameId=' + gameId);
+    res.redirect('/play?gameId=' + gameId);
 })
 
-app.get('/', (req, res) => {
+app.get('/play', (req, res) => {
     let gameId = req.query.gameId;
     if (gameId in activeGames) {
         let game = activeGames[gameId]
