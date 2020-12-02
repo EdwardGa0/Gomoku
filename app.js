@@ -40,7 +40,8 @@ app.get('/play', (req, res) => {
             }
             let randomId = Math.random().toString(36).substring(7);
             req.session.playerId = randomId;
-            game.players.push(randomId);
+            game.addPlayer(randomId);
+            console.log('player added');
         }
         res.sendFile(__dirname + '/front.html');
     } else {
