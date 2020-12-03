@@ -55,10 +55,6 @@ class Game {
         return (this.board[row1][col1] % 2) == (this.board[row2][col2] % 2);
     }
 
-    addPlayer(id) {
-        this.players.push(id);
-    }
-
     turn() {
         return this.turnStack.length;
     }

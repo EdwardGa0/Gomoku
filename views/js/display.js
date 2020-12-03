@@ -15,9 +15,9 @@ var stoneGrid = document.getElementById("stoneGrid");
 function addToGrid(row, col) {
     let stone = document.createElement("img");
     if (turn % 2 == 0) {
-        stone.setAttribute("src", "images/black.png")
+        stone.setAttribute("src", "views/images/black.png")
     } else {
-        stone.setAttribute("src", "images/white.png")
+        stone.setAttribute("src", "views/images/white.png")
     }
     stone.style.gridArea = (row+1) + " / " + (col+1) + " / span 1 / span 1";
     stone.setAttribute('draggable', false);

@@ -40,10 +40,8 @@ app.get('/play', (req, res) => {
             }
             let randomId = Math.random().toString(36).substring(7);
             req.session.playerId = randomId;
-            game.addPlayer(randomId);
-            console.log('player added');
         }
-        res.sendFile(__dirname + '/front.html');
+        res.sendFile(__dirname + '/views/play.html');
     } else {
         res.send('gameId not found');
     }
@@ -63,64 +61,68 @@ setInterval(() => {
     }
 }, daysToMillis(1));
 
-function update(game, pos) {
-    let placed;
-    if (pos) {
-        placed = game.place(pos.row, pos.col);
-    } else {
-        placed = null;
-    }
-    game.checkWin();
-    let winner = false;
-    if (game.over) {
-        if (game.winner) {
-            winner = "white";
-        } else {
-            winner = "black";
-        }
-    }
-    io.emit('update', {
-        "placed": placed,
-        "turnStack": game.turnStack,
-        "turn": game.turn(),
-        "winner": winner
-    })
-}
-
 io.on('connection', (socket) => {
     let gameId = socket.handshake.query.gameId;
     console.log(gameId);
     if (!(gameId in activeGames)) {
         console.log("game does not exist");
-        return socket.disconnect();
+        return socket.leave(gameId);
     }
+    socket.join(gameId);
     let game = activeGames[gameId];
     let session = socket.request.session;
-    if (!(game.players.includes(session.playerId))) {
-        console.log("playerId not registered");
-        return socket.disconnect();
+
+    function update(pos) {
+        let placed;
+        if (pos) {
+            placed = game.place(pos.row, pos.col);
+        } else {
+            placed = null;
+        }
+        game.checkWin();
+        let winner = false;
+        if (game.over) {
+            if (game.winner) {
+                winner = "white";
+            } else {
+                winner = "black";
+            }
+        }
+        io.to(gameId).emit('update', {
+            "placed": placed,
+            "turnStack": game.turnStack,
+            "turn": game.turn(),
+            "winner": winner
+        })
     }
-    // 0 goes first
-    let playerNum = game.players.indexOf(session.playerId);
-    update(game, null);
+
+    update(null);
+
+    function playerNum() {
+        return game.players.indexOf(session.playerId);
+    }
 
     socket.on('place', (pos) => {
-        console.log('place received');
+        if (playerNum() == -1 && game.players.length < 2) {
+            game.players.push(session.playerId);
+        }
         if (game.over) {
             console.log("game over");
-            return socket.disconnect();
+            return socket.leave(gameId);
         }
-        if (playerNum == game.turn() % 2) {
-            update(game, pos);
+        if (playerNum() == game.turn() % 2) {
+            update(pos);
         }
     });
     socket.on('resign', () => {
-        game.over = true;
-        game.winner = 1 - playerNum;
-        update(game, null);
+        if (playerNum() != -1) {
+            game.over = true;
+            game.winner = 1 - playerNum();
+            update(null);
+        }
     })
     socket.on('again', () => {
-
+        
     });
 });
 
