@@ -1,3 +1,5 @@
+//const { Server } = require("socket.io");
+
 var size = 15;
 
 var boardGrid = document.getElementById("boardGrid");
@@ -37,21 +39,32 @@ socket.on('update', function(data) {
         let [row, col] = data.turnStack[turn];
         addToGrid(row, col);
     }
-    if (data.winner && !gameOver) {
-        gameOver = true;
-        let victoryStr = document.createElement("h1");
-        victoryStr.innerHTML = data.winner + ' wins';
-        document.body.appendChild(victoryStr);
-        let playAgain = document.createElement("button");
-        playAgain.id = "again";
-        playAgain.innerHTML = "New Game";
-        playAgain.style.float = "right";
-        playAgain.onclick = function() {
-            location.replace("https://gomokuonline.herokuapp.com/");
-        }
-        menu.appendChild(playAgain);
-    }
 });
+
+socket.on('over', function(data) {
+    gameOver = true;
+    let victoryStr = document.createElement("h1");
+    victoryStr.innerHTML = data.winner + ' wins';
+    document.body.appendChild(victoryStr);
+    let playAgain = document.createElement("button");
+    playAgain.id = "again";
+    playAgain.innerHTML = "New Game";
+    playAgain.style.float = "right";
+    playAgain.onclick = function() {
+        window.location.replace('/');
+    }
+    menu.appendChild(playAgain);
+});
+
+socket.on('dc', function() {
+    socket.disconnect();
+})
+
+socket.on('refresh', function() {
+    console.log('refreshing');
+    console.log(window.location.host);
+    window.location.replace('/');
+})
 
 var board = document.getElementById("board");
 board.onclick = function(e) {
