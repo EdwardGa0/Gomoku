@@ -22,18 +22,17 @@ function addToGrid(row, col) {
         stone.setAttribute("src", "views/images/white.png")
     }
     stone.style.gridArea = (row+1) + " / " + (col+1) + " / span 1 / span 1";
-    stone.setAttribute('draggable', false);
-    stone.classList.add('noselect');
+    stone.setAttribute("draggable", false);
+    stone.classList.add("noselect");
     stoneGrid.appendChild(stone);
     turn++;
 }
 
 const urlParams = new URLSearchParams(window.location.search);
-const gameId = urlParams.get('gameId');
-var socket = io.connect('', {query: 'gameId=' + gameId});
+const gameId = urlParams.get("gameId");
+var socket = io.connect("", {query: "gameId=" + gameId});
 
-var menu = document.getElementById("menu");
-socket.on('update', function(data) {
+socket.on("update", function(data) {
     console.log(data);
     while (turn < data.turn) {
         let [row, col] = data.turnStack[turn];
@@ -41,30 +40,26 @@ socket.on('update', function(data) {
     }
 });
 
-socket.on('over', function(data) {
+socket.on("over", function() {
     gameOver = true;
-    let victoryStr = document.createElement("h1");
-    victoryStr.innerHTML = data.winner + ' wins';
-    document.body.appendChild(victoryStr);
-    let playAgain = document.createElement("button");
-    playAgain.id = "again";
-    playAgain.innerHTML = "New Game";
-    playAgain.style.float = "right";
-    playAgain.onclick = function() {
-        window.location.replace('/');
-    }
-    menu.appendChild(playAgain);
+    document.getElementById("resignDiv").style.visibility = "hidden";
+    document.getElementById("nextGame").style.visibility = "visible";
 });
 
-socket.on('dc', function() {
+socket.on("dc", function() {
     socket.disconnect();
-})
+});
 
-socket.on('refresh', function() {
-    console.log('refreshing');
+function refresh() {
     console.log(window.location.host);
-    window.location.replace('/');
-})
+    window.location.replace("/");
+}
+socket.on("refresh", refresh);
+
+socket.on("reload", function() {
+    window.location.reload();
+});
+
 
 var board = document.getElementById("board");
 board.onclick = function(e) {
@@ -76,12 +71,32 @@ board.onclick = function(e) {
     let y = e.clientY - rect.top;  //y position within the element.
     let row = Math.floor(y / rect.height * size);
     let col = Math.floor(x / rect.width * size);
-    socket.emit('place', {'row': row, 'col': col});
+    socket.emit("place", {"row": row, "col": col});
 }
 
 var resign = document.getElementById("resign");
 resign.onclick = function() {
     if (!gameOver) {
-        socket.emit('resign');
+        socket.emit("resign");
     }
 }
+
+var newGame = document.getElementById("newGame");
+newGame.onclick = function() {
+    refresh();
+}
+
+var rematch = document.getElementById("rematch");
+rematch.onclick = function() {
+    socket.emit("rematchServer");
+}
+
+socket.on("rematchClient", function() {
+    console.log('got here');
+    if (confirm("Rematch?")) {
+        socket.emit("rematchAccepted");
+    }
+});
+
+
+

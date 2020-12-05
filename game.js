@@ -7,6 +7,7 @@ class Game {
             this.board[i] = new Array(size);
         }
         this.players = [];
+        this.sockets = [];
         this.over = false;
         this.date = new Date();
     }

@@ -1,14 +1,14 @@
-const express = require('express')
-const session = require('express-session');
+const express = require("express")
+const session = require("express-session");
 const port = (process.env.PORT || 8080);
 const app = express()
 
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
+const server = require("http").createServer(app);
+const io = require("socket.io")(server);
 
 const sessionMiddleware = session({secret: "Shh, its a secret!"});
 
-const Game = require('./game');
+const Game = require("./game");
 const activeGames = {};
 const idQueue = [];
 
@@ -18,15 +18,16 @@ app.use(sessionMiddleware);
 
 io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
+    //res.sendFile(__dirname + "/views/index.html");
+
     let gameId = Math.random().toString(36).substring(7);
     activeGames[gameId] = new Game(15);
     idQueue.push(gameId);
-    req.session.destroy();
-    res.redirect('/play?gameId=' + gameId);
+    res.redirect("/play?gameId=" + gameId);
 })
 
-app.get('/play', (req, res) => {
+app.get("/play", (req, res) => {
     let gameId = req.query.gameId;
     if (gameId in activeGames) {
         let game = activeGames[gameId]
@@ -35,11 +36,11 @@ app.get('/play', (req, res) => {
             req.session.playerId = randomId;
         }
         if (game.players.length >= 2 && !game.players.includes(req.session.playerId)) {
-            return res.send('game is full');
+            return res.send("game is full");
         }
-        res.sendFile(__dirname + '/views/play.html');
+        res.sendFile(__dirname + "/views/play.html");
     } else {
-        res.send('gameId not found');
+        res.send("gameId not found");
     }
 })
 
@@ -57,12 +58,12 @@ setInterval(() => {
     }
 }, daysToMillis(1));
 
-io.on('connection', (socket) => {
+io.on("connection", (socket) => {
     let gameId = socket.handshake.query.gameId;
     console.log(gameId);
     if (!(gameId in activeGames)) {
         console.log("game does not exist");
-        return io.to(socket.id).emit('refresh');
+        return io.to(socket.id).emit("refresh");
     }
     socket.join(gameId);
     let game = activeGames[gameId];
@@ -75,27 +76,11 @@ io.on('connection', (socket) => {
         } else {
             placed = null;
         }
-        io.to(gameId).emit('update', {
+        io.to(gameId).emit("update", {
             "placed": placed,
             "turnStack": game.turnStack,
             "turn": game.turn(),
         })
-    }
-
-    function endEmit() {
-        let winnerColor;
-        if (game.winner) {
-            winnerColor = "white";
-        } else {
-            winnerColor = "black";
-        }
-        io.to(gameId).emit('over', {
-            "winner": winnerColor
-        })
-    }
-
-    function tearDown() {
-        io.to(gameId).emit('dc');
     }
 
     updateEmit(null);
@@ -104,30 +89,36 @@ io.on('connection', (socket) => {
         return game.players.indexOf(session.playerId);
     }
 
-    socket.on('place', (pos) => {
+    socket.on("place", (pos) => {
         if (playerNum() == -1 && game.players.length < 2) {
             game.players.push(session.playerId);
+            game.sockets.push(socket);
         }
         if (playerNum() == game.turn() % 2) {
             updateEmit(pos);
         }
         game.checkWin();
         if (game.over) {
-            endEmit();
-            return tearDown();
+            io.to(gameId).emit("over");
         }
     });
-    socket.on('resign', () => {
+    socket.on("resign", () => {
         if (playerNum() != -1) {
             game.over = true;
             game.winner = 1 - playerNum();
-            endEmit();
-            return tearDown();
+            io.to(gameId).emit("over");
         }
     })
-    socket.on('again', () => {
-        
+    socket.on("rematchServer", () => {
+        console.log("rematchServer");
+        //sending rematch request to other socket in room
+        socket.to(gameId).emit("rematchClient");
     });
+
+    socket.on("rematchAccepted", () => {
+        activeGames[gameId] = new Game(15);
+        io.to(gameId).emit("reload");
+    })
 });
 
 server.listen(port, () => {
