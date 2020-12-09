@@ -19,8 +19,10 @@ app.use(sessionMiddleware);
 io.use((socket, next) => sessionMiddleware(socket.request, {}, next));
 
 app.get("/", (req, res) => {
-    //res.sendFile(__dirname + "/views/index.html");
+    res.sendFile(__dirname + "/views/index.html");
+})
 
+app.get("/new", (req, res) => {
     let gameId = Math.random().toString(36).substring(7);
     activeGames[gameId] = new Game(15);
     idQueue.push(gameId);
